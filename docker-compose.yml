@@ -7,10 +7,10 @@ services:
       args:
         ELK_VERSION: $ELK_VERSION
     volumes:
-      - type: bind
-        source: ./elasticsearch/config/elasticsearch.yml
-        target: /usr/share/elasticsearch/config/elasticsearch.yml
-        read_only: true
+      # - type: bind
+      #   source: ./elasticsearch/config/elasticsearch.yml
+      #   target: /usr/share/elasticsearch/config/elasticsearch.yml
+      #   read_only: true
       - type: volume
         source: elasticsearch
         target: /usr/share/elasticsearch/data
@@ -23,6 +23,18 @@ services:
       # Use single node discovery in order to disable production mode and avoid bootstrap checks
       # see https://www.elastic.co/guide/en/elasticsearch/reference/current/bootstrap-checks.html
       discovery.type: single-node
+      ## Default Elasticsearch configuration from Elasticsearch base image.
+      ## https://github.com/elastic/elasticsearch/blob/master/distribution/docker/src/docker/config/elasticsearch.yml
+      #
+      cluster.name: "docker-cluster"
+      network.host: "0.0.0.0"
+
+      ## X-Pack settings
+      ## see https://www.elastic.co/guide/en/elasticsearch/reference/current/setup-xpack.html
+      #
+      xpack.license.self_generated.type: "trial"
+      xpack.security.enabled: "true"
+      xpack.monitoring.collection.enabled: "true"
     networks:
       - elk
 
@@ -31,21 +43,32 @@ services:
       context: logstash/
       args:
         ELK_VERSION: $ELK_VERSION
-    volumes:
-      - type: bind
-        source: ./logstash/config/logstash.yml
-        target: /usr/share/logstash/config/logstash.yml
-        read_only: true
-      - type: bind
-        source: ./logstash/pipeline
-        target: /usr/share/logstash/pipeline
-        read_only: true
+      # volumes:
+      # - type: bind
+      #   source: ./logstash/config/logstash.yml
+      #   target: /usr/share/logstash/config/logstash.yml
+      #   read_only: true
+      # - type: bind
+      #   source: ./logstash/pipeline
+      #   target: /usr/share/logstash/pipeline
+      #   read_only: true
     ports:
       - "5000:5000/tcp"
       - "5000:5000/udp"
       - "9600:9600"
     environment:
       LS_JAVA_OPTS: "-Xmx256m -Xms256m"
+      ## Default Logstash configuration from Logstash base image.
+      ## https://github.com/elastic/logstash/blob/master/docker/data/logstash/config/logstash-full.yml
+      #
+      http.host: "0.0.0.0"
+      xpack.monitoring.elasticsearch.hosts: "http://elasticsearch:9200"
+
+      ## X-Pack security credentials
+      #
+      xpack.monitoring.enabled: "true"
+      xpack.monitoring.elasticsearch.username: elastic
+      xpack.monitoring.elasticsearch.password: changeme
     networks:
       - elk
     depends_on:
@@ -56,13 +79,26 @@ services:
       context: kibana/
       args:
         ELK_VERSION: $ELK_VERSION
-    volumes:
-      - type: bind
-        source: ./kibana/config/kibana.yml
-        target: /usr/share/kibana/config/kibana.yml
-        read_only: true
+    # volumes:
+      # - type: bind
+      #   source: ./kibana/config/kibana.yml
+      #   target: /usr/share/kibana/config/kibana.yml
+      #   read_only: true
     ports:
       - "5601:5601"
+    environment: 
+      ## Default Kibana configuration from Kibana base image.
+      ## https://github.com/elastic/kibana/blob/master/src/dev/build/tasks/os_packages/docker_generator/templates/kibana_yml.template.js
+      #
+      server.name: kibana
+      server.host: "0"
+      elasticsearch.hosts: "http://elasticsearch:9200"
+      xpack.monitoring.ui.container.elasticsearch.enabled: "true"
+
+      ## X-Pack security credentials
+      #
+      elasticsearch.username: elastic
+      elasticsearch.password: changeme
     networks:
       - elk
     depends_on:
