@@ -19,7 +19,7 @@ services:
       - "9300:9300"
     environment:
       ES_JAVA_OPTS: "-Xmx256m -Xms256m"
-      ELASTIC_PASSWORD: changeme
+      ELASTIC_PASSWORD: "changeme"
       # Use single node discovery in order to disable production mode and avoid bootstrap checks
       # see https://www.elastic.co/guide/en/elasticsearch/reference/current/bootstrap-checks.html
       discovery.type: single-node
@@ -28,11 +28,12 @@ services:
       #
       cluster.name: "docker-cluster"
       network.host: "0.0.0.0"
-
+      #network.publish_host: "elasticsearch"
+      #network.bind_host: "_local_"
       ## X-Pack settings
       ## see https://www.elastic.co/guide/en/elasticsearch/reference/current/setup-xpack.html
       #
-      xpack.license.self_generated.type: "trial"
+      xpack.license.self_generated.type: "basic"
       xpack.security.enabled: "true"
       xpack.monitoring.collection.enabled: "true"
     networks:
@@ -43,15 +44,15 @@ services:
       context: logstash/
       args:
         ELK_VERSION: $ELK_VERSION
-      # volumes:
-      # - type: bind
-      #   source: ./logstash/config/logstash.yml
-      #   target: /usr/share/logstash/config/logstash.yml
-      #   read_only: true
-      # - type: bind
-      #   source: ./logstash/pipeline
-      #   target: /usr/share/logstash/pipeline
-      #   read_only: true
+        #volumes:
+         #- type: bind
+         #source: ./logstash/config/logstash.yml
+         #target: /usr/share/logstash/config/logstash.yml
+         #read_only: true
+         #- type: bind
+         #source: ./logstash/pipeline
+         #target: /usr/share/logstash/pipeline
+         #read_only: true
     ports:
       - "5000:5000/tcp"
       - "5000:5000/udp"
@@ -64,11 +65,30 @@ services:
       http.host: "0.0.0.0"
       xpack.monitoring.elasticsearch.hosts: "http://elasticsearch:9200"
 
+      
+      CONFIG_STRING: > 
+        input {
+            udp {
+                port  => 5000
+                codec => json
+            }
+            tcp {
+                port  => 5000
+                codec => json
+            }
+        }
+        output {
+            elasticsearch {
+                hosts => "elasticsearch:9200"
+                user => "elastic"
+                password => "changeme"
+            }
+        }
       ## X-Pack security credentials
       #
       xpack.monitoring.enabled: "true"
       xpack.monitoring.elasticsearch.username: elastic
-      xpack.monitoring.elasticsearch.password: changeme
+      xpack.monitoring.elasticsearch.password: "changeme"
     networks:
       - elk
     depends_on:
@@ -97,8 +117,8 @@ services:
 
       ## X-Pack security credentials
       #
-      elasticsearch.username: elastic
-      elasticsearch.password: changeme
+      ELASTICSEARCH_USERNAME: elastic
+      ELASTICSEARCH_PASSWORD: "changeme"
     networks:
       - elk
     depends_on:
@@ -106,7 +126,8 @@ services:
 
 networks:
   elk:
-    driver: bridge
+    external: true
+    #driver: bridge
 
 volumes:
   elasticsearch:
